@@ -67,6 +67,3 @@ Meeting Preparation Agent automates the complete meeting workflow using AI.
 * CRM Integration
 * Team Collaboration
 
-## Author
-
-Ayush Chaurasiya
