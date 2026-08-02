@@ -36,7 +36,7 @@ class ClientReadinessRequest(BaseModel):
     meeting_notes: str  
 
 class ProjectComplexityRequest(BaseModel):
-    project_description: str  
+    meeting_notes: str
 
 class MeetingHealthRequest(BaseModel):
     meeting_notes: str

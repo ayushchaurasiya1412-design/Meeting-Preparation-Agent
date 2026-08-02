@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Register from "./pages/Register/Register";
 import {
   BrowserRouter,
@@ -24,26 +24,28 @@ import SuperAgents from "./pages/SuperAgents/SuperAgents";
 import Profile from "./pages/Profile/Profile";
 
 function Layout() {
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
 
+  // Apply / remove the dark class on <body> whenever darkMode changes
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add("dark");
+    } else {
+      document.body.classList.remove("dark");
+    }
+  }, [darkMode]);
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "var(--bg-base)",
-      }}
-    >
-      <Sidebar
-        isOpen={isOpen}
-        toggleSidebar={() => setIsOpen(!isOpen)}
-      />
+    <div style={{ minHeight: "100vh", background: "var(--bg-base)", transition: "background 0.22s" }}>
+      <Sidebar isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
 
       <div
         style={{
-          marginLeft: isOpen ? "300px" : "90px",
-          transition: "all 0.3s ease",
+          marginLeft: isOpen ? "240px" : "72px",
+          transition: "margin-left 0.22s cubic-bezier(.4,0,.2,1)",
           minHeight: "100vh",
+          background: "var(--bg-base)",
         }}
       >
         <Navbar

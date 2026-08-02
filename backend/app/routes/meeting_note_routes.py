@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.database.dependencies import get_db
 from app.models.meeting_note import MeetingNote
-from app.schemas.meeting_note_schema import MeetingNoteCreate
+from app.schemas.meeting_note_schema import MeetingNoteCreate, MeetingNoteUpdate
 
 router = APIRouter()
 
@@ -92,4 +93,39 @@ def delete_note(
 
     return {
         "message": "Meeting Note Deleted Successfully"
+    }
+
+
+# UPDATE NOTE
+@router.put("/{note_id}")
+def update_note(
+    note_id: int,
+    note_update: MeetingNoteUpdate,
+    db: Session = Depends(get_db)
+):
+    note = db.query(MeetingNote).filter(
+        MeetingNote.id == note_id
+    ).first()
+
+    if not note:
+        raise HTTPException(
+            status_code=404,
+            detail="Note not found"
+        )
+
+    if note_update.notes is not None:
+        note.notes = note_update.notes
+    if note_update.meeting_id is not None:
+        note.meeting_id = note_update.meeting_id
+
+    db.commit()
+    db.refresh(note)
+
+    return {
+        "message": "Meeting Note Updated Successfully",
+        "note": {
+            "id": note.id,
+            "meeting_id": note.meeting_id,
+            "notes": note.notes
+        }
     }
