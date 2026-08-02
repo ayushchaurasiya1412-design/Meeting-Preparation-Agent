@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../../services/api";
 import { useToast } from "../../context/ToastContext";
+import EmailSendModal from "../../components/email/EmailSendModal";
 
 const MOCK_MEETINGS = [
   { id:1, title:"Contract Negotiation", client_name:"Atlas Consulting",   meeting_date:"2026-06-20T16:30:00", duration:120, location:"Client Office",   status:"pending",   agenda:"Review Q3 contract terms" },
@@ -83,8 +84,11 @@ export default function Meetings() {
   const [meetings, setMeetings] = useState([]);
   const [clients, setClients]   = useState([]);
   const [search, setSearch]     = useState("");
-  const [view, setView]         = useState("grid"); // grid | list
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterClient, setFilterClient] = useState("all");
+  const [view, setView]         = useState("grid");
   const [modal, setModal]       = useState(null);
+  const [emailModal, setEmailModal] = useState(null); // { clientName, body }
   const toast = useToast();
 
   const loadAll = async () => {
@@ -123,10 +127,13 @@ export default function Meetings() {
     toast("Meeting deleted.", "info");
   };
 
-  const filtered = meetings.filter(m =>
-    m.title?.toLowerCase().includes(search.toLowerCase()) ||
-    m.client_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = meetings.filter(m => {
+    const matchSearch = m.title?.toLowerCase().includes(search.toLowerCase()) ||
+      m.client_name?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus === "all" || getStatus(m) === filterStatus;
+    const matchClient = filterClient === "all" || String(m.client_id) === filterClient;
+    return matchSearch && matchStatus && matchClient;
+  });
 
   const getStatus = (m) => (m.status || (new Date(m.meeting_date) < new Date() ? "completed" : "upcoming")).toLowerCase();
 
@@ -144,19 +151,33 @@ export default function Meetings() {
       </div>
 
       {/* Toolbar */}
-      <div style={{ display:"flex", gap:"12px", marginBottom:"24px", alignItems:"center" }}>
-        <div style={{ position:"relative", flex:1, maxWidth:"400px" }}>
+      <div style={{ display:"flex", gap:"12px", marginBottom:"24px", alignItems:"center", flexWrap:"wrap" }}>
+        <div style={{ position:"relative", flex:1, minWidth:200, maxWidth:"360px" }}>
           <svg style={{ position:"absolute", left:"14px", top:"50%", transform:"translateY(-50%)", opacity:0.4 }} width="16" height="16" fill="none" stroke="var(--text-secondary)" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           <input placeholder="Search meetings..." value={search} onChange={e => setSearch(e.target.value)} className="input-glass" style={{ paddingLeft:"42px" }}/>
         </div>
-        <div style={{ display:"flex", gap:"4px", background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:"12px", padding:"4px" }}>
+        {/* Status filter */}
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-glass" style={{ width:"auto", paddingRight:32, cursor:"pointer" }}>
+          <option value="all">All Status</option>
+          {["upcoming","pending","completed","cancelled"].map(s => (
+            <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>
+          ))}
+        </select>
+        {/* Client filter */}
+        <select value={filterClient} onChange={e => setFilterClient(e.target.value)} className="input-glass" style={{ width:"auto", paddingRight:32, cursor:"pointer" }}>
+          <option value="all">All Clients</option>
+          {clients.map(c => <option key={c.id} value={String(c.id)}>{c.company_name}</option>)}
+        </select>
+        {/* View toggle */}
+        <div style={{ display:"flex", gap:"4px", background:"var(--bg-base)", border:"1px solid var(--border)", borderRadius:"12px", padding:"4px", marginLeft:"auto" }}>
           {["grid","list"].map(v => (
             <button key={v} onClick={() => setView(v)} style={{
-              background: view === v ? "rgba(124,58,237,0.25)" : "transparent",
-              border: view === v ? "1px solid rgba(124,58,237,0.30)" : "1px solid transparent",
-              color: view === v ? "#a78bfa" : "var(--text-muted)",
+              background: view===v ? "var(--bg-surface)" : "transparent",
+              border: view===v ? "1px solid var(--border)" : "1px solid transparent",
+              color: view===v ? "var(--violet)" : "var(--text-muted)",
               borderRadius:"9px", width:"34px", height:"34px", cursor:"pointer",
               display:"grid", placeItems:"center", transition:"all 0.2s",
+              boxShadow: view===v ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
             }}>
               {v === "grid"
                 ? <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
@@ -208,6 +229,13 @@ export default function Meetings() {
                   <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                   Edit
                 </button>
+                <button onClick={() => setEmailModal({ clientName: m.client_name, body: `Dear ${m.client_name},\n\nThank you for attending the meeting "${m.title}".\n\nPlease find our follow-up notes below.\n\nBest regards` })}
+                  style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, background:"rgba(14,165,233,0.08)", border:"1px solid rgba(14,165,233,0.22)", color:"#0ea5e9", borderRadius:"12px", padding:"8px 12px", cursor:"pointer", fontSize:"0.82rem", fontWeight:500, fontFamily:"var(--font-main)", transition:"all 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background="rgba(14,165,233,0.15)"}
+                  onMouseLeave={e => e.currentTarget.style.background="rgba(14,165,233,0.08)"}>
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                  Email
+                </button>
                 <button onClick={() => handleDelete(m.id)} style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:"6px", background:"rgba(244,63,94,0.10)", border:"1px solid rgba(244,63,94,0.20)", color:"#f43f5e", borderRadius:"12px", padding:"8px 12px", cursor:"pointer", fontSize:"0.82rem", fontWeight:500, fontFamily:"var(--font-primary)", transition:"all 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(244,63,94,0.18)"}
                   onMouseLeave={e => e.currentTarget.style.background = "rgba(244,63,94,0.10)"}
@@ -227,6 +255,13 @@ export default function Meetings() {
           clients={clients}
           onClose={() => setModal(null)}
           onSave={handleSave}
+        />
+      )}
+      {emailModal && (
+        <EmailSendModal
+          clientName={emailModal.clientName}
+          emailBody={emailModal.body}
+          onClose={() => setEmailModal(null)}
         />
       )}
     </div>

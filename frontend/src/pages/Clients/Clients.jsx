@@ -59,6 +59,8 @@ function ClientModal({ initial, onClose, onSave }) {
 export default function Clients() {
   const [clients, setClients] = useState([]);
   const [search, setSearch]   = useState("");
+  const [filterIndustry, setFilterIndustry] = useState("all");
+  const [filterStatus,   setFilterStatus]   = useState("all");
   const [modal, setModal]     = useState(null);
   const toast = useToast();
 
@@ -88,10 +90,16 @@ export default function Clients() {
     toast("Client deleted.", "info");
   };
 
-  const filtered = clients.filter(c =>
-    c.company_name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.contact_person?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = clients.filter(c => {
+    const matchSearch = c.company_name?.toLowerCase().includes(search.toLowerCase()) ||
+      c.contact_person?.toLowerCase().includes(search.toLowerCase()) ||
+      c.email?.toLowerCase().includes(search.toLowerCase());
+    const matchIndustry = filterIndustry === "all" || c.industry === filterIndustry;
+    const matchStatus   = filterStatus   === "all" || (c.status || "active") === filterStatus;
+    return matchSearch && matchIndustry && matchStatus;
+  });
+
+  const industries = [...new Set(clients.map(c => c.industry).filter(Boolean))];
 
   const statusCfg = { active:"chip-emerald", prospect:"chip-amber", inactive:"chip-rose" };
 
@@ -111,6 +119,26 @@ export default function Clients() {
       <div style={{ position:"relative", maxWidth:"420px", marginBottom:"24px" }}>
         <svg style={{ position:"absolute", left:"14px", top:"50%", transform:"translateY(-50%)", opacity:0.4 }} width="16" height="16" fill="none" stroke="#94a3b8" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         <input placeholder="Search clients..." value={search} onChange={e => setSearch(e.target.value)} className="input-glass" style={{ paddingLeft:"42px" }}/>
+      </div>
+
+      {/* Filters row */}
+      <div style={{ display:"flex", gap:"10px", marginBottom:"24px", flexWrap:"wrap" }}>
+        <select value={filterIndustry} onChange={e => setFilterIndustry(e.target.value)} className="input-glass" style={{ width:"auto", cursor:"pointer" }}>
+          <option value="all">All Industries</option>
+          {industries.map(ind => <option key={ind} value={ind}>{ind}</option>)}
+        </select>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-glass" style={{ width:"auto", cursor:"pointer" }}>
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="prospect">Prospect</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        {(search || filterIndustry !== "all" || filterStatus !== "all") && (
+          <button className="btn-ghost" style={{ fontSize:"0.82rem" }} onClick={() => { setSearch(""); setFilterIndustry("all"); setFilterStatus("all"); }}>
+            ✕ Clear filters
+          </button>
+        )}
+        <span style={{ marginLeft:"auto", fontSize:"0.8rem", color:"var(--text-muted)", alignSelf:"center" }}>{filtered.length} of {clients.length} clients</span>
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(340px, 1fr))", gap:"16px" }}>

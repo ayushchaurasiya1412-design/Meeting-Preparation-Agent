@@ -22,6 +22,8 @@ import AIAnalysis from "./pages/AIAnalysis/AIAnalysis";
 import ActionItems from "./pages/ActionItems/ActionItems";
 import SuperAgents from "./pages/SuperAgents/SuperAgents";
 import Profile from "./pages/Profile/Profile";
+import CalendarPage from "./pages/Calendar/Calendar";
+import Timer from "./pages/Timer/Timer";
 
 function Layout() {
   const [darkMode, setDarkMode] = useState(false);
@@ -90,18 +92,11 @@ function Layout() {
               element={<ActionItems />}
             />
 
-            <Route
-              path="/super-agent"
-              element={<SuperAgents />}
-            />
-            <Route
-             path="/register"
-             element={<Register />}
-            />
-            <Route
-             path="/profile"
-             element={<Profile />}
-            />
+            <Route path="/super-agent" element={<SuperAgents />} />
+            <Route path="/calendar"    element={<CalendarPage />} />
+            <Route path="/timer"       element={<Timer />} />
+            <Route path="/register"    element={<Register />} />
+            <Route path="/profile"     element={<Profile />} />
 
           </Routes>
         </div>
