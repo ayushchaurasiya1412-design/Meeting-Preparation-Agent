@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api from "../../services/api";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -43,61 +43,263 @@ function StatCard({ title, value, subtitle, color, gradient, icon, trend }) {
 }
 
 // ── Activity Feed ────────────────────────────────────────────
-function ActivityFeed({ items }) {
+function ActivityFeed({ items, onRefresh }) {
+  const [pulse, setPulse] = useState(false);
+
+  // live-refresh every 30s
+  useEffect(() => {
+    const t = setInterval(() => {
+      setPulse(true);
+      onRefresh();
+      setTimeout(() => setPulse(false), 800);
+    }, 30_000);
+    return () => clearInterval(t);
+  }, [onRefresh]);
+
   const timeAgo = (iso) => {
     if (!iso) return "just now";
     const diff = (Date.now() - new Date(iso)) / 1000;
-    if (diff < 60)   return "just now";
-    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-    if (diff < 86400)return `${Math.floor(diff/3600)}h ago`;
-    return `${Math.floor(diff/86400)}d ago`;
+    if (diff < 60)    return "just now";
+    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
   };
+
+  const TYPE_CFG = {
+    meeting    : { dot:"#7c3aed", bar:"#7c3aed" },
+    client     : { dot:"#0ea5e9", bar:"#0ea5e9" },
+    action_done: { dot:"#10b981", bar:"#10b981" },
+    action_wip : { dot:"#f59e0b", bar:"#f59e0b" },
+    note       : { dot:"#ec4899", bar:"#ec4899" },
+  };
+
   return (
-    <div className="glass" style={{ padding:22 }}>
-      <div style={{ fontWeight:700, fontSize:"0.92rem", color:"var(--text-primary)", marginBottom:18 }}>📰 Recent Activity</div>
-      {items.length === 0 && <div style={{ color:"var(--text-muted)", fontSize:"0.84rem", textAlign:"center", padding:"20px 0" }}>No activity yet</div>}
-      {items.map((ev, i) => (
-        <div key={i} style={{ display:"flex", gap:12, marginBottom:14, alignItems:"flex-start" }}>
-          <div style={{ width:32, height:32, borderRadius:10, background:`${ev.color}12`, border:`1px solid ${ev.color}22`, display:"grid", placeItems:"center", fontSize:"0.9rem", flexShrink:0 }}>
-            {ev.icon}
+    <div className="glass" style={{ padding:22, display:"flex", flexDirection:"column", height:"100%" }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:34, height:34, borderRadius:10, background:"linear-gradient(135deg,#7c3aed22,#0ea5e922)", border:"1px solid var(--border)", display:"grid", placeItems:"center" }}>
+            <svg width="15" height="15" fill="none" stroke="var(--violet)" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
           </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:"0.82rem", color:"var(--text-primary)", fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ev.label}</div>
-            <div style={{ fontSize:"0.7rem", color:"var(--text-muted)", marginTop:2 }}>{timeAgo(ev.time)}</div>
+          <div>
+            <div style={{ fontWeight:700, fontSize:"0.92rem", color:"var(--text-primary)" }}>Recent Activity</div>
+            <div style={{ fontSize:"0.68rem", color:"var(--text-muted)" }}>Auto-updates every 30s</div>
           </div>
         </div>
-      ))}
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          {/* live dot */}
+          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+            <div style={{ width:7, height:7, borderRadius:"50%", background:"#10b981",
+              boxShadow: pulse ? "0 0 0 5px rgba(16,185,129,0.25)" : "0 0 0 3px rgba(16,185,129,0.15)",
+              transition:"box-shadow 0.4s" }}/>
+            <span style={{ fontSize:"0.68rem", color:"#10b981", fontWeight:600 }}>LIVE</span>
+          </div>
+          <button onClick={() => { setPulse(true); onRefresh(); setTimeout(()=>setPulse(false),800); }}
+            style={{ width:28, height:28, borderRadius:8, border:"1px solid var(--border)", background:"var(--bg-base)", cursor:"pointer", display:"grid", placeItems:"center", color:"var(--text-muted)", transition:"all 0.2s" }}
+            title="Refresh now"
+            onMouseEnter={e => { e.currentTarget.style.background="var(--bg-hover)"; e.currentTarget.style.color="var(--violet)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background="var(--bg-base)";  e.currentTarget.style.color="var(--text-muted)"; }}>
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"
+              style={{ transition:"transform 0.4s", transform: pulse ? "rotate(180deg)" : "rotate(0deg)" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Timeline */}
+      {items.length === 0 ? (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", color:"var(--text-muted)", gap:10, padding:"24px 0" }}>
+          <div style={{ fontSize:"2rem", opacity:0.4 }}>📭</div>
+          <div style={{ fontSize:"0.82rem" }}>No activity yet</div>
+        </div>
+      ) : (
+        <div style={{ position:"relative" }}>
+          {/* vertical rail */}
+          <div style={{ position:"absolute", left:15, top:8, bottom:0, width:2, background:"var(--border)", borderRadius:99 }}/>
+
+          {items.map((ev, i) => {
+            const cfg = TYPE_CFG[ev.type] || { dot:"#94a3b8", bar:"#94a3b8" };
+            return (
+              <div key={i} style={{ display:"flex", gap:14, marginBottom:16, position:"relative", alignItems:"flex-start" }}>
+                {/* dot on rail */}
+                <div style={{
+                  width:32, height:32, borderRadius:10, flexShrink:0,
+                  background:`${cfg.dot}14`, border:`1.5px solid ${cfg.dot}30`,
+                  display:"grid", placeItems:"center", fontSize:"0.88rem",
+                  position:"relative", zIndex:1,
+                  boxShadow: i === 0 ? `0 0 0 4px ${cfg.dot}12` : "none",
+                }}>
+                  {ev.icon}
+                </div>
+
+                <div style={{ flex:1, minWidth:0, paddingTop:4 }}>
+                  {/* left colored bar */}
+                  <div style={{ display:"flex", gap:0 }}>
+                    <div style={{ width:3, borderRadius:99, background:`linear-gradient(180deg,${cfg.bar},${cfg.bar}44)`, marginRight:10, flexShrink:0, minHeight:32, alignSelf:"stretch" }}/>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:"0.82rem", color:"var(--text-primary)", fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", lineHeight:1.3 }}>
+                        {ev.label}
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:4 }}>
+                        <span style={{ fontSize:"0.68rem", color:`${cfg.dot}`, fontWeight:700, background:`${cfg.dot}12`, padding:"2px 7px", borderRadius:99, border:`1px solid ${cfg.dot}22` }}>
+                          {ev.type?.replace("_"," ").toUpperCase() || "EVENT"}
+                        </span>
+                        <span style={{ fontSize:"0.68rem", color:"var(--text-muted)" }}>
+                          {timeAgo(ev.time)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Upcoming Meetings Widget ─────────────────────────────────
 function UpcomingMeetings({ items }) {
+  const [now, setNow] = useState(Date.now());
+
+  // tick every minute so countdowns refresh
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const getCountdown = (isoDate) => {
+    if (!isoDate) return null;
+    const diff = new Date(isoDate) - now;
+    if (diff < 0)       return { label:"Started", color:"#f43f5e", bg:"#fff1f2", border:"#fecdd3" };
+    const totalMins = Math.floor(diff / 60000);
+    const days  = Math.floor(totalMins / 1440);
+    const hours = Math.floor((totalMins % 1440) / 60);
+    const mins  = totalMins % 60;
+    if (days > 0)  return { label: `${days}d ${hours}h`, color:"#7c3aed", bg:"#f5f3ff", border:"#ddd6fe" };
+    if (hours > 0) return { label: `${hours}h ${mins}m`,  color:"#0ea5e9", bg:"#f0f9ff", border:"#bae6fd" };
+    if (mins  > 0) return { label: `${mins}m`,            color:"#f59e0b", bg:"#fffbeb", border:"#fde68a" };
+    return { label:"Now", color:"#10b981", bg:"#ecfdf5", border:"#a7f3d0" };
+  };
+
+  const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
   return (
-    <div className="glass" style={{ padding:22 }}>
-      <div style={{ fontWeight:700, fontSize:"0.92rem", color:"var(--text-primary)", marginBottom:18 }}>📅 Upcoming (7 days)</div>
-      {items.length === 0 && <div style={{ color:"var(--text-muted)", fontSize:"0.84rem", textAlign:"center", padding:"20px 0" }}>No upcoming meetings</div>}
-      {items.map((m, i) => {
-        const dt   = m.meeting_date ? new Date(m.meeting_date) : null;
-        const days = dt ? Math.ceil((dt - Date.now()) / 86400000) : null;
-        return (
-          <div key={i} style={{ display:"flex", gap:12, marginBottom:14, alignItems:"flex-start", padding:"10px 12px", borderRadius:12, background:"var(--bg-base)", border:"1px solid var(--border)" }}>
-            <div style={{ textAlign:"center", width:36, flexShrink:0 }}>
-              <div style={{ fontSize:"1.4rem", fontWeight:900, color:"var(--violet)", lineHeight:1 }}>{dt ? dt.getDate() : "—"}</div>
-              <div style={{ fontSize:"0.6rem", fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase" }}>{dt ? dt.toLocaleDateString("en-US",{month:"short"}) : ""}</div>
-            </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:"0.85rem", fontWeight:700, color:"var(--text-primary)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.title}</div>
-              <div style={{ fontSize:"0.72rem", color:"var(--text-muted)", marginTop:2 }}>{m.client_name}</div>
-            </div>
-            {days != null && (
-              <span style={{ fontSize:"0.68rem", fontWeight:700, color: days===0?"#f43f5e":days===1?"#f59e0b":"#7c3aed", background: days===0?"#fff1f2":days===1?"#fffbeb":"#f5f3ff", padding:"3px 8px", borderRadius:99, flexShrink:0, border:`1px solid ${days===0?"#fecdd3":days===1?"#fde68a":"#ddd6fe"}` }}>
-                {days === 0 ? "Today" : days === 1 ? "Tomorrow" : `In ${days}d`}
-              </span>
-            )}
+    <div className="glass" style={{ padding:22, display:"flex", flexDirection:"column" }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:34, height:34, borderRadius:10, background:"rgba(14,165,233,0.10)", border:"1px solid rgba(14,165,233,0.20)", display:"grid", placeItems:"center" }}>
+            <svg width="16" height="16" fill="none" stroke="#0ea5e9" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
           </div>
-        );
-      })}
+          <div>
+            <div style={{ fontWeight:700, fontSize:"0.92rem", color:"var(--text-primary)" }}>Upcoming Meetings</div>
+            <div style={{ fontSize:"0.68rem", color:"var(--text-muted)" }}>Next 7 days</div>
+          </div>
+        </div>
+        <span style={{ fontSize:"0.72rem", fontWeight:700, color:"#0ea5e9", background:"rgba(14,165,233,0.10)", padding:"3px 10px", borderRadius:99, border:"1px solid rgba(14,165,233,0.20)" }}>
+          {items.length} scheduled
+        </span>
+      </div>
+
+      {items.length === 0 ? (
+        <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", color:"var(--text-muted)", gap:10, padding:"28px 0" }}>
+          <div style={{ fontSize:"2.4rem", opacity:0.35 }}>📅</div>
+          <div style={{ fontSize:"0.84rem", fontWeight:500 }}>No meetings in the next 7 days</div>
+          <div style={{ fontSize:"0.74rem", color:"var(--text-muted)" }}>Enjoy the free time!</div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {items.map((m, i) => {
+            const dt       = m.meeting_date ? new Date(m.meeting_date) : null;
+            const cd       = getCountdown(m.meeting_date);
+            const isFirst  = i === 0;
+
+            return (
+              <div key={m.id || i}
+                style={{
+                  borderRadius:14,
+                  border:`1.5px solid ${isFirst ? "rgba(14,165,233,0.30)" : "var(--border)"}`,
+                  background: isFirst ? "rgba(14,165,233,0.04)" : "var(--bg-base)",
+                  overflow:"hidden", transition:"all 0.2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform="translateY(-1px)"; e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,0.07)"; }}
+                onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)";    e.currentTarget.style.boxShadow="none"; }}
+              >
+                {/* top color strip for first item */}
+                {isFirst && <div style={{ height:3, background:"linear-gradient(90deg,#0ea5e9,#7c3aed)", borderRadius:"14px 14px 0 0" }}/>}
+
+                <div style={{ display:"flex", gap:14, padding:"12px 14px", alignItems:"flex-start" }}>
+                  {/* Date block */}
+                  <div style={{
+                    width:46, flexShrink:0, textAlign:"center", padding:"8px 4px",
+                    borderRadius:10, background: isFirst ? "rgba(14,165,233,0.12)" : "var(--bg-surface)",
+                    border:`1px solid ${isFirst ? "rgba(14,165,233,0.20)" : "var(--border)"}`,
+                  }}>
+                    <div style={{ fontSize:"0.6rem", fontWeight:800, color: isFirst ? "#0ea5e9" : "var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>
+                      {dt ? DAY_NAMES[dt.getDay()] : "—"}
+                    </div>
+                    <div style={{ fontSize:"1.5rem", fontWeight:900, color: isFirst ? "#0ea5e9" : "var(--text-primary)", lineHeight:1.1 }}>
+                      {dt ? dt.getDate() : "—"}
+                    </div>
+                    <div style={{ fontSize:"0.6rem", fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase" }}>
+                      {dt ? MONTH_SHORT[dt.getMonth()] : ""}
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, fontSize:"0.88rem", color:"var(--text-primary)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {m.title}
+                    </div>
+                    <div style={{ fontSize:"0.74rem", color:"var(--text-muted)", marginTop:3, display:"flex", alignItems:"center", gap:6 }}>
+                      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                      {m.client_name}
+                    </div>
+                    {dt && (
+                      <div style={{ fontSize:"0.72rem", color:"var(--text-muted)", marginTop:3, display:"flex", alignItems:"center", gap:6 }}>
+                        <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {dt.toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit" })}
+                        {m.duration ? ` · ${m.duration} min` : ""}
+                      </div>
+                    )}
+                    {m.agenda && (
+                      <div style={{ fontSize:"0.72rem", color:"var(--text-muted)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"95%" }}>
+                        📋 {m.agenda}
+                      </div>
+                    )}
+                    {/* action row */}
+                    <div style={{ display:"flex", gap:6, marginTop:10 }}>
+                      {cd && (
+                        <span style={{ fontSize:"0.7rem", fontWeight:700, color:cd.color, background:cd.bg, padding:"3px 9px", borderRadius:99, border:`1px solid ${cd.border}` }}>
+                          ⏱ {cd.label}
+                        </span>
+                      )}
+                      <a href="/timer" style={{
+                        fontSize:"0.7rem", fontWeight:700, color:"white",
+                        background:"linear-gradient(135deg,#0ea5e9,#7c3aed)",
+                        padding:"3px 10px", borderRadius:99, textDecoration:"none",
+                        display:"inline-flex", alignItems:"center", gap:4,
+                      }}>
+                        <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+                        Start Timer
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -106,13 +308,20 @@ function UpcomingMeetings({ items }) {
 const PIE_COLORS = ["#7c3aed","#0ea5e9","#10b981","#f59e0b","#f43f5e","#14b8a6"];
 
 export default function Dashboard() {
-  const [stats,          setStats]          = useState({ clients:0, meetings:0, notes:0, actions:0, completed_actions:0, completion_rate:0 });
-  const [monthly,        setMonthly]        = useState([]);
-  const [actionCompl,    setActionCompl]    = useState([]);
-  const [industries,     setIndustries]     = useState([]);
-  const [upcoming,       setUpcoming]       = useState([]);
-  const [activity,       setActivity]       = useState([]);
-  const [loading,        setLoading]        = useState(true);
+  const [stats,       setStats]       = useState({ clients:0, meetings:0, notes:0, actions:0, completed_actions:0, completion_rate:0 });
+  const [monthly,     setMonthly]     = useState([]);
+  const [actionCompl, setActionCompl] = useState([]);
+  const [industries,  setIndustries]  = useState([]);
+  const [upcoming,    setUpcoming]    = useState([]);
+  const [activity,    setActivity]    = useState([]);
+  const [loading,     setLoading]     = useState(true);
+
+  const fetchActivity = useCallback(async () => {
+    try {
+      const res = await api.get("/api/dashboard/activity-feed");
+      setActivity(res.data);
+    } catch { /* keep existing */ }
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -283,7 +492,7 @@ export default function Dashboard() {
       {/* Bottom row — Upcoming + Activity feed */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
         <UpcomingMeetings items={upcoming}/>
-        <ActivityFeed items={activity}/>
+        <ActivityFeed items={activity} onRefresh={fetchActivity}/>
       </div>
     </div>
   );

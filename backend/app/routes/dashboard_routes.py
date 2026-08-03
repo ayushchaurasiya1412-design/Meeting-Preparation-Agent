@@ -164,14 +164,24 @@ def activity_feed(db: Session = Depends(get_db)):
             "icon":  "🏢",
         })
 
-    actions = db.query(ActionItem).filter(ActionItem.status == "Completed").order_by(ActionItem.created_at.desc()).limit(3).all()
-    for a in actions:
+    actions_done = db.query(ActionItem).filter(ActionItem.status == "Completed").order_by(ActionItem.created_at.desc()).limit(3).all()
+    for a in actions_done:
         events.append({
-            "type":  "action",
-            "label": f"Task completed: {a.task[:50]}",
+            "type":  "action_done",
+            "label": f"Task completed: {a.task[:55]}",
             "time":  a.created_at.isoformat() if a.created_at else None,
             "color": "#10b981",
             "icon":  "✅",
+        })
+
+    actions_wip = db.query(ActionItem).filter(ActionItem.status == "In Progress").order_by(ActionItem.created_at.desc()).limit(2).all()
+    for a in actions_wip:
+        events.append({
+            "type":  "action_wip",
+            "label": f"Task in progress: {a.task[:55]}",
+            "time":  a.created_at.isoformat() if a.created_at else None,
+            "color": "#f59e0b",
+            "icon":  "🔄",
         })
 
     notes = db.query(MeetingNote).order_by(MeetingNote.id.desc()).limit(2).all()

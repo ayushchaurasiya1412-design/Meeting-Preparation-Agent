@@ -1,11 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import Optional
 
 from app.database.dependencies import get_db
 from app.models.action_item import ActionItem
 from app.schemas.action_item_schema import ActionItemCreate
 
 router = APIRouter()
+
+VALID_STATUSES = ["Pending", "In Progress", "Completed"]
+
+class StatusUpdate(BaseModel):
+    status: str
+
+class ActionItemUpdate(BaseModel):
+    task: Optional[str] = None
+    assigned_to: Optional[str] = None
+    status: Optional[str] = None
 
 
 # TEST
@@ -77,20 +89,56 @@ def delete_action_item(
     item_id: int,
     db: Session = Depends(get_db)
 ):
-
-    item = db.query(ActionItem).filter(
-        ActionItem.id == item_id
-    ).first()
-
+    item = db.query(ActionItem).filter(ActionItem.id == item_id).first()
     if not item:
-        raise HTTPException(
-            status_code=404,
-            detail="Action Item not found"
-        )
-
+        raise HTTPException(status_code=404, detail="Action Item not found")
     db.delete(item)
     db.commit()
+    return {"message": "Action Item Deleted Successfully"}
 
+
+# PATCH STATUS — for Kanban column moves
+@router.patch("/{item_id}/status")
+def update_action_item_status(
+    item_id: int,
+    body: StatusUpdate,
+    db: Session = Depends(get_db)
+):
+    if body.status not in VALID_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status. Must be one of: {VALID_STATUSES}"
+        )
+    item = db.query(ActionItem).filter(ActionItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Action Item not found")
+    item.status = body.status
+    db.commit()
+    db.refresh(item)
     return {
-        "message": "Action Item Deleted Successfully"
+        "message": "Status updated",
+        "id": item.id,
+        "status": item.status,
+        "task": item.task,
     }
+
+
+# PUT — full update
+@router.put("/{item_id}")
+def update_action_item(
+    item_id: int,
+    body: ActionItemUpdate,
+    db: Session = Depends(get_db)
+):
+    item = db.query(ActionItem).filter(ActionItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Action Item not found")
+    if body.task        is not None: item.task        = body.task
+    if body.assigned_to is not None: item.assigned_to = body.assigned_to
+    if body.status      is not None:
+        if body.status not in VALID_STATUSES:
+            raise HTTPException(status_code=400, detail=f"Invalid status")
+        item.status = body.status
+    db.commit()
+    db.refresh(item)
+    return item
