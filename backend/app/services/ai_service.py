@@ -309,3 +309,50 @@ def assign_tasks(
     """
 
     return safe_generate(prompt)
+
+
+# ── AI CHAT ───────────────────────────────────────────────────
+def chat_with_ai(
+    message: str,
+    history: list,          # list of {"role": ..., "content": ...}
+    context: str = ""
+) -> str:
+    """
+    Conversational AI assistant aware of meeting notes context.
+    history: list of prior turns [{"role":"user"|"assistant","content":"..."}]
+    context: optional meeting notes text to inject as system knowledge
+    """
+
+    system_prompt = (
+        "You are MeetPrep AI, a professional meeting intelligence assistant. "
+        "You help users understand their meetings, clients, action items, and notes. "
+        "Be concise, professional, and helpful. "
+        "If asked about specific meetings or notes, use only the provided context. "
+        "If no context is provided, answer based on general meeting best practices."
+    )
+
+    if context.strip():
+        system_prompt += (
+            f"\n\nHere is the relevant meeting context:\n\n{context[:4000]}"
+        )
+
+    messages = [{"role": "system", "content": system_prompt}]
+
+    # inject conversation history (cap at last 10 turns)
+    for turn in history[-10:]:
+        messages.append({"role": turn["role"], "content": turn["content"]})
+
+    # current user message
+    messages.append({"role": "user", "content": message})
+
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.6,
+            max_tokens=600,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print("Chat AI Error:", e)
+        return "I'm having trouble connecting right now. Please try again in a moment."

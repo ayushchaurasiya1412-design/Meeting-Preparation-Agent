@@ -23,7 +23,8 @@ from app.schemas.ai_schema import (
     RecommendationRequest,
     SuperAnalysisRequest,
     TaskAssignmentRequest,
-    SuperAnalysisByIdRequest
+    SuperAnalysisByIdRequest,
+    ChatRequest,
 )
 
 from app.services.ai_service import (
@@ -39,7 +40,8 @@ from app.services.ai_service import (
     analyze_project_complexity,
     analyze_meeting_health,
     assign_tasks,
-    generate_recommendations
+    generate_recommendations,
+    chat_with_ai,
 )
 
 router = APIRouter()
@@ -439,3 +441,25 @@ def _parse_sentiment_and_risk(sentiment_text: str, risk_text: str):
             level = "medium"
 
     return score, level
+
+
+# =====================================
+# AI CHAT ASSISTANT
+# =====================================
+
+@router.post("/chat")
+def ai_chat(request: ChatRequest):
+    """
+    Conversational AI endpoint.
+    Accepts a message + conversation history + optional meeting context.
+    Returns an AI reply.
+    """
+    reply = chat_with_ai(
+        message=request.message,
+        history=[m.model_dump() for m in request.history],
+        context=request.context,
+    )
+    return {
+        "success": True,
+        "reply": reply,
+    }

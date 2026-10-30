@@ -53,3 +53,13 @@ class SuperAnalysisRequest(BaseModel):
 
 class SuperAnalysisByIdRequest(BaseModel):
     meeting_id: int
+
+
+class ChatMessage(BaseModel):
+    role: str   # "user" | "assistant"
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list[ChatMessage] = []
+    context: str = ""   # optional: meeting notes injected as context
