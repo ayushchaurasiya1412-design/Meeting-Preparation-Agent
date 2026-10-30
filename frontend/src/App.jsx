@@ -10,6 +10,7 @@ import {
 import Sidebar from "./components/sidebar/sidebar";
 import Navbar from "./components/navbar/Navbar";
 import { ToastProvider } from "./context/ToastContext";
+import AIChatBubble from "./components/chat/AIChatBubble";
 
 import Home from "./pages/Home/Home";
 import Login from "./pages/Login/Login";
@@ -61,15 +62,10 @@ function Layout() {
 
         <div
           className="page-content"
-          style={{
-            padding: "20px",
-          }}
+          style={{ padding: "20px" }}
         >
           <Routes>
-            <Route
-              path="/dashboard"
-              element={<Dashboard />}
-            />
+            <Route path="/dashboard" element={<Dashboard />} />
 
             <Route path="/clients"     element={<Clients />} />
             <Route path="/clients/:id" element={<ClientDetail />} />
@@ -103,6 +99,8 @@ function Layout() {
           </Routes>
         </div>
       </div>
+      {/* AI Chat Bubble — floats over all pages */}
+      <AIChatBubble />
     </div>
   );
 }
