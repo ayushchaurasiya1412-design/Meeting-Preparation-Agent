@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import api from "../../services/api";
+import api, { API_URL } from "../../services/api";
 
 const navItems = [
   {
@@ -181,7 +181,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <div className="sidebar-profile-row">
             <div className="sidebar-avatar">
               {profilePhoto
-                ? <img src={`http://localhost:8000${profilePhoto}`} alt="avatar" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                ? <img src={`${API_URL}${profilePhoto}`} alt="avatar" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
                 : userName.substring(0, 2).toUpperCase()
               }
             </div>
@@ -208,7 +208,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           <div style={{ display:"flex", justifyContent:"center" }}>
             <div className="sidebar-avatar">
               {profilePhoto
-                ? <img src={`http://localhost:8000${profilePhoto}`} alt="avatar" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                ? <img src={`${API_URL}${profilePhoto}`} alt="avatar" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
                 : userName.substring(0, 2).toUpperCase()
               }
             </div>

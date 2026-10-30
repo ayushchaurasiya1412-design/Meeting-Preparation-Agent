@@ -16,6 +16,7 @@ import Login from "./pages/Login/Login";
 
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Clients from "./pages/Clients/Clients";
+import ClientDetail from "./pages/ClientDetail/ClientDetail";
 import Meetings from "./pages/Meetings/Meetings";
 import Notes from "./pages/Notes/Notes";
 import AIAnalysis from "./pages/AIAnalysis/AIAnalysis";
@@ -26,16 +27,19 @@ import CalendarPage from "./pages/Calendar/Calendar";
 import Timer from "./pages/Timer/Timer";
 
 function Layout() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(
+    () => localStorage.getItem("darkMode") === "true"
+  );
   const [isOpen, setIsOpen] = useState(true);
 
-  // Apply / remove the dark class on <body> whenever darkMode changes
   useEffect(() => {
     if (darkMode) {
       document.body.classList.add("dark");
     } else {
       document.body.classList.remove("dark");
     }
+    // persist preference
+    localStorage.setItem("darkMode", String(darkMode));
   }, [darkMode]);
 
   return (
@@ -67,10 +71,8 @@ function Layout() {
               element={<Dashboard />}
             />
 
-            <Route
-              path="/clients"
-              element={<Clients />}
-            />
+            <Route path="/clients"     element={<Clients />} />
+            <Route path="/clients/:id" element={<ClientDetail />} />
 
             <Route
               path="/meetings"

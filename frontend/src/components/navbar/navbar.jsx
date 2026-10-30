@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../../services/api";
 
 export default function Navbar({ darkMode, setDarkMode }) {
   const navigate  = useNavigate();
@@ -89,7 +90,7 @@ export default function Navbar({ darkMode, setDarkMode }) {
           color:"white", fontWeight:700, fontSize:"0.8rem", flexShrink:0,
         }}>
           {profilePhoto
-            ? <img src={`http://localhost:8000${profilePhoto}`} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+            ? <img src={`${API_URL}${profilePhoto}`} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
             : initial
           }
         </div>

@@ -149,8 +149,20 @@ def analyze_meeting(
             if item.strip()
         ]
 
+        # ── Duplicate prevention ──────────────────────────────
+        # Fetch existing tasks for this meeting (lowercased for comparison)
+        existing = db.query(ActionItem).filter(
+            ActionItem.meeting_id == request.meeting_id
+        ).all()
+        existing_tasks_lower = {a.task.strip().lower() for a in existing}
+
         saved_items = []
+        new_count   = 0
         for task in action_items_list:
+            if task.lower() in existing_tasks_lower:
+                # already exists — just return it, don't insert
+                saved_items.append(task)
+                continue
             new_action_item = ActionItem(
                 meeting_id=request.meeting_id,
                 task=task,
@@ -158,6 +170,9 @@ def analyze_meeting(
             )
             db.add(new_action_item)
             saved_items.append(task)
+            existing_tasks_lower.add(task.lower())   # prevent intra-batch dupes
+            new_count += 1
+
         db.commit()
 
         email = generate_followup_email(client_data.company_name, summary)
@@ -171,6 +186,7 @@ def analyze_meeting(
             "meeting_title": meeting.title,
             "summary": summary,
             "action_items": saved_items,
+            "new_action_items_count": new_count,
             "email": email
         }
 

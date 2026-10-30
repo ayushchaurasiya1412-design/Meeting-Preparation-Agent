@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { useToast } from "../../context/ToastContext";
 
@@ -57,6 +58,7 @@ function ClientModal({ initial, onClose, onSave }) {
 }
 
 export default function Clients() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [search, setSearch]   = useState("");
   const [filterIndustry, setFilterIndustry] = useState("all");
@@ -176,22 +178,17 @@ export default function Clients() {
             </div>
 
             <div style={{ display:"flex", gap:"8px", marginTop:"16px" }}>
-              <button className="btn-ghost" style={{ flex:1, justifyContent:"center", padding:"8px 12px", fontSize:"0.82rem" }} onClick={() => setModal(c)}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                Edit
+              <button onClick={() => navigate(`/clients/${c.id}`)} className="btn-primary"
+                style={{ flex:1, justifyContent:"center", padding:"8px 12px", fontSize:"0.82rem" }}>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                View Details
               </button>
-              <button onClick={() => handleDelete(c.id)} style={{
-                flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:"6px",
-                background:"#fff1f2", border:"1px solid #fecdd3",
-                color:"#e11d48", borderRadius:"12px", padding:"8px 12px",
-                cursor:"pointer", fontSize:"0.82rem", fontWeight:500, fontFamily:"var(--font-primary)",
-                transition:"all 0.2s",
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = "#ffe4e6"}
-                onMouseLeave={e => e.currentTarget.style.background = "#fff1f2"}
-              >
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                Delete
+              <button className="btn-ghost" style={{ padding:"8px 12px", fontSize:"0.82rem" }} onClick={() => setModal(c)}>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+              <button onClick={() => handleDelete(c.id)} style={{ display:"flex", alignItems:"center", justifyContent:"center", background:"#fff1f2", border:"1px solid #fecdd3", color:"#e11d48", borderRadius:"12px", padding:"8px 12px", cursor:"pointer", fontSize:"0.82rem", transition:"all 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.background="#ffe4e6"} onMouseLeave={e => e.currentTarget.style.background="#fff1f2"}>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               </button>
             </div>
           </div>

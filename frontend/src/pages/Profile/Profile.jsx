@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../services/api";
+import api, { API_URL } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
 import "./Profile.css";
 
@@ -353,7 +353,7 @@ export default function Profile() {
             <div className="profile-avatar-container" onClick={() => photoInputRef.current?.click()}>
               <div className="profile-avatar">
                 {profile.profile_photo ? (
-                  <img src={`http://localhost:8000${profile.profile_photo}`} alt="Profile" className="profile-photo-img" />
+                  <img src={`${API_URL}${profile.profile_photo}`} alt="Profile" className="profile-photo-img" />
                 ) : (
                   profile.name ? profile.name.substring(0, 2).toUpperCase() : "ME"
                 )}

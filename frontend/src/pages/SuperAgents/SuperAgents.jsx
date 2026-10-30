@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../services/api";
+import api, { API_URL } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
 
 const TABS = ["Overview", "Sentiment & Health", "Risk Analysis", "Deliverables"];
@@ -179,7 +179,7 @@ export default function SuperAgents() {
             <CopyBtn text={result.followup_email || ""}/>
             <button
               className="btn-primary"
-              onClick={() => window.open(`http://127.0.0.1:8000/api/reports/download-report/${meetingId}`, "_blank")}
+              onClick={() => window.open(`${API_URL}/api/reports/download-report/${meetingId}`, "_blank")}
               disabled={!meetingId}
             >
               <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
